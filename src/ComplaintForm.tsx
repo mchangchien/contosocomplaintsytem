@@ -13,7 +13,7 @@ interface ComplaintFormProps {
 const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
   const [complaint, setComplaint] = useState<string>("");
   const [findings, setFindings] = useState<string>("");
-  const [responseTones, setResponseTones] = useState<string[]>([]); // New state for tone selection
+  const [responseTones, setResponseTones] = useState<string[]>([]); // State for tone selection
   const [response, setResponse] = useState<string>("");
   const [editedResponse, setEditedResponse] = useState<string>("");
   const [originalCategory, setOriginalCategory] = useState<string>("");
@@ -31,12 +31,13 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
     if (e.target.files) setDocument(e.target.files[0]);
   };
 
-  const handleToneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedOptions = Array.from(
-      e.target.selectedOptions,
-      (option) => option.value
-    );
-    setResponseTones(selectedOptions);
+  const handleToneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const tone = e.target.value;
+    if (e.target.checked) {
+      setResponseTones((prev) => [...prev, tone]); // Add tone if checked
+    } else {
+      setResponseTones((prev) => prev.filter((t) => t !== tone)); // Remove tone if unchecked
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,18 +137,19 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
           rows={3}
         />
         <label>Select Response Tone(s):</label>
-        <select
-          multiple
-          value={responseTones}
-          onChange={handleToneChange}
-          style={{ height: "100px" }} // Adjust height for visibility
-        >
+        <div style={{ margin: "10px 0" }}>
           {toneOptions.map((tone) => (
-            <option key={tone} value={tone}>
+            <label key={tone} style={{ marginRight: "20px" }}>
+              <input
+                type="checkbox"
+                value={tone}
+                checked={responseTones.includes(tone)}
+                onChange={handleToneChange}
+              />
               {tone.charAt(0).toUpperCase() + tone.slice(1)}
-            </option>
+            </label>
           ))}
-        </select>
+        </div>
         <button type="submit" disabled={loading}>
           {loading ? "Processing..." : "Submit"}
         </button>
