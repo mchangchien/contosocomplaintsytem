@@ -13,6 +13,7 @@ interface ComplaintFormProps {
 const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
   const [complaint, setComplaint] = useState<string>("");
   const [findings, setFindings] = useState<string>("");
+  const [responseTones, setResponseTones] = useState<string[]>([]); // New state for tone selection
   const [response, setResponse] = useState<string>("");
   const [editedResponse, setEditedResponse] = useState<string>("");
   const [originalCategory, setOriginalCategory] = useState<string>("");
@@ -24,9 +25,18 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
   const [responseId, setResponseId] = useState<string>("");
 
   const categories = ["Credit Cards", "Channels", "Staff", "Banking & Savings"];
+  const toneOptions = ["polite", "formal", "creative", "concise", "empathetic"]; // Predefined tones
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setDocument(e.target.files[0]);
+  };
+
+  const handleToneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedOptions = Array.from(
+      e.target.selectedOptions,
+      (option) => option.value
+    );
+    setResponseTones(selectedOptions);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +53,7 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
     try {
       const res = await axios.post(
         "/api/processComplaint",
-        { complaint, findings },
+        { complaint, findings, responseTones }, // Send tones as an array
         { headers: { "Content-Type": "application/json" } }
       );
       const generatedResponse = res.data.response;
@@ -125,6 +135,19 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
           placeholder="Findings..."
           rows={3}
         />
+        <label>Select Response Tone(s):</label>
+        <select
+          multiple
+          value={responseTones}
+          onChange={handleToneChange}
+          style={{ height: "100px" }} // Adjust height for visibility
+        >
+          {toneOptions.map((tone) => (
+            <option key={tone} value={tone}>
+              {tone.charAt(0).toUpperCase() + tone.slice(1)}
+            </option>
+          ))}
+        </select>
         <button type="submit" disabled={loading}>
           {loading ? "Processing..." : "Submit"}
         </button>
