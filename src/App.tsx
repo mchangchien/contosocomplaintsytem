@@ -25,6 +25,7 @@ const App: React.FC = () => {
         const response = await fetch("/.auth/me");
         if (response.ok) {
           const data = await response.json();
+          console.log("Raw payload from /.auth/me:", data);
           const clientPrincipal = data.clientPrincipal;
           const getClaimValues = (claimType: string): string[] =>
             clientPrincipal.claims
