@@ -13,19 +13,22 @@ interface ComplaintFormProps {
 const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
   const [complaint, setComplaint] = useState<string>("");
   const [findings, setFindings] = useState<string>("");
-  const [responseTones, setResponseTones] = useState<string[]>([]); // State for tone selection
+  const [responseTones, setResponseTones] = useState<string[]>([]);
   const [response, setResponse] = useState<string>("");
   const [editedResponse, setEditedResponse] = useState<string>("");
   const [originalCategory, setOriginalCategory] = useState<string>("");
   const [editedCategory, setEditedCategory] = useState<string>("");
   const [document, setDocument] = useState<File | null>(null);
+  const [responseScore, setResponseScore] = useState<number | null>(null);
+  const [responsePrompt, setResponsePrompt] = useState<string>(""); // New state for full prompt
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [saveStatus, setSaveStatus] = useState<string>("");
   const [responseId, setResponseId] = useState<string>("");
 
   const categories = ["Credit Cards", "Channels", "Staff", "Banking & Savings"];
-  const toneOptions = ["polite", "formal", "creative", "concise", "empathetic"]; // Predefined tones
+  const toneOptions = ["polite", "formal", "creative", "concise", "empathetic"];
+  const scoreOptions = [1, 2, 3, 4, 5];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) setDocument(e.target.files[0]);
@@ -34,10 +37,14 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
   const handleToneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const tone = e.target.value;
     if (e.target.checked) {
-      setResponseTones((prev) => [...prev, tone]); // Add tone if checked
+      setResponseTones((prev) => [...prev, tone]);
     } else {
-      setResponseTones((prev) => prev.filter((t) => t !== tone)); // Remove tone if unchecked
+      setResponseTones((prev) => prev.filter((t) => t !== tone));
     }
+  };
+
+  const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setResponseScore(parseInt(e.target.value, 10));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,19 +57,23 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
     setEditedCategory("");
     setSaveStatus("");
     setResponseId("");
+    setResponseScore(null);
+    setResponsePrompt(""); // Reset prompt
 
     try {
       const res = await axios.post(
         "/api/processComplaint",
-        { complaint, findings, responseTones }, // Send tones as an array
+        { complaint, findings, responseTones },
         { headers: { "Content-Type": "application/json" } }
       );
       const generatedResponse = res.data.response;
       const generatedCategory = res.data.category;
+      const generatedPrompt = res.data.prompt; // Capture full prompt from response
       setResponse(generatedResponse);
       setEditedResponse(generatedResponse);
       setOriginalCategory(generatedCategory);
       setEditedCategory(generatedCategory);
+      setResponsePrompt(generatedPrompt);
     } catch (err) {
       setError("Failed to process complaint. Please try again.");
       console.error(err);
@@ -80,6 +91,9 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
     formData.append("originalCategory", originalCategory);
     formData.append("editedCategory", editedCategory);
     if (document) formData.append("document", document);
+    if (responseScore !== null)
+      formData.append("responseScore", responseScore.toString());
+    formData.append("responsePrompt", responsePrompt); // Include full prompt
 
     try {
       const res = await axios.post("/api/saveResponse", formData, {
@@ -172,6 +186,21 @@ const ComplaintForm: React.FC<ComplaintFormProps> = ({ user }) => {
               </option>
             ))}
           </select>
+          <label>Score the Generated Response (1-5):</label>
+          <div style={{ margin: "10px 0" }}>
+            {scoreOptions.map((score) => (
+              <label key={score} style={{ marginRight: "15px" }}>
+                <input
+                  type="radio"
+                  name="responseScore"
+                  value={score}
+                  checked={responseScore === score}
+                  onChange={handleScoreChange}
+                />
+                {score}
+              </label>
+            ))}
+          </div>
           <div>
             <button onClick={handleSaveResponse}>Save</button>
             <button onClick={handleResetResponse}>Reset to Original</button>
